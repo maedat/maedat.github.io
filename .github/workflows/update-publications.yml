@@ -1,0 +1,42 @@
+name: Update Publications from ORCID
+
+on:
+  schedule:
+    # 毎週月曜日 AM 9:00 JST (UTC 00:00) に自動実行
+    - cron: '0 0 * * 1'
+  workflow_dispatch:  # 手動実行も可能
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch ORCID and update index.html
+        run: python3 .github/scripts/update_publications.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes — publications are up to date."
+          else
+            git commit -m "chore: update publications from ORCID [$(date +'%Y-%m-%d')]"
+            git push
+            echo "Publications updated!"
+          fi
